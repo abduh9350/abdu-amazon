@@ -12,6 +12,10 @@
   background-color: white;
 }
 
+.product_rating {
+  display: flex;
+}
+
 .product > img {
   max-height: 200px;
   width: 100%;
