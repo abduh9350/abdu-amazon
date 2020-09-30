@@ -5,7 +5,7 @@ import SearchIcon from "@material-ui/icons/Search";
 import { useStateValue } from "./StateProvider";
 import { Link } from "react-router-dom";
 function Header() {
-  const [basket] = useStateValue();
+  const [{ basket }] = useStateValue();
   return (
     <div className='header'>
       <Link to='/'>
@@ -41,7 +41,7 @@ function Header() {
               className='header_optionLineTwo 
               header_optionBasket '
             >
-              {basket?.length}
+              {basket.length}
             </span>
           </div>
         </Link>
