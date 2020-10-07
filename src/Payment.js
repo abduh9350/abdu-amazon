@@ -6,9 +6,11 @@ import { Link, useHistory } from "react-router-dom";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import axios from "./axios";
 import CurrencyFormat from "react-currency-format";
+import { getBasketTotal } from "./reducer";
+import { db } from "./firebase";
 function Payment() {
   const history = useHistory();
-  const [{ basket, user }] = useStateValue();
+  const [{ basket, user }, dispatch] = useStateValue();
   const stripe = useStripe();
   const elements = useElements();
   const [succeeded, setSucceeded] = useState(false);
@@ -20,12 +22,14 @@ function Payment() {
     const getClientSecret = async () => {
       const response = await axios({
         method: "post",
-        url: `/payments/create?total=${total(basket) * 100}`,
+        url: `/payments/create?total=${getBasketTotal(basket) * 100}`,
       });
       setClientSecret(response.data.clientSecret);
     };
     getClientSecret();
   }, [basket]);
+
+  console.log("THE SECRET IS >>>", clientSecret);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,9 +41,21 @@ function Payment() {
         },
       })
       .then(({ paymentIntent }) => {
+        db.collection("users")
+          .doc(user?.uid)
+          .collection("orders")
+          .doc(paymentIntent.id)
+          .set({
+            basket: basket,
+            amount: paymentIntent.amount,
+            created: paymentIntent.created,
+          });
         setSucceeded(true);
         setError(null);
         setProcessing(false);
+        dispatch({
+          type: "EMPTY_BASKET",
+        });
         history.replace("/orders");
       });
   };
@@ -48,13 +64,6 @@ function Payment() {
     setError(e.error ? e.error.message : "");
   };
 
-  function total(basket) {
-    let sum = 0;
-    for (let i = 0; i < basket.length; i++) {
-      sum += basket[i].price;
-    }
-    return sum;
-  }
   return (
     <div className='payment'>
       <div className='payment_container'>
@@ -96,12 +105,12 @@ function Payment() {
                 <CurrencyFormat
                   renderText={(value) => <h3>Order Total: {value}</h3>}
                   decimalScale={2}
-                  value={total(basket)}
+                  value={getBasketTotal(basket)}
                   displayType={"text"}
                   thousandSeparator={true}
                   prefix={"$"}
                 />
-                <button disable={processing || disabled || succeeded}>
+                <button disabled={processing || disabled || succeeded}>
                   <span>{processing ? <p>Processing</p> : "Buy Now"} </span>
                 </button>
               </div>
